@@ -259,10 +259,10 @@ bool PlanningHelpers::GetRelativeInfoLimited(const std::vector<WayPoint>& trajec
 	if(trajectory.size() < 2) return false;
 
 	WayPoint p0, p1;
+			
 
 	if(trajectory.size()==2)
 	{
-		std::cout << std::endl << "GetRelativeInfoLimited( 1 " << std::endl;
 		vector<WayPoint> _trajectory;
 		p0 = trajectory.at(0);
 		p1 = p0;
@@ -310,7 +310,7 @@ bool PlanningHelpers::GetRelativeInfoLimited(const std::vector<WayPoint>& trajec
 		double m = (p1.pos.y-p0.pos.y)/(p1.pos.x-p0.pos.x);
 		info.perp_distance = p1.pos.y - m*p1.pos.x; // solve for x = 0
 
-		if(std::isnan(info.perp_distance) || std::isinf(info.perp_distance)) info.perp_distance = 0;
+		if(std::isnan(info.perp_distance) || std::isinf(info.perp_distance)) info.perp_distance = DBL_MAX;
 
 		info.to_front_distance = fabs(p1.pos.x); // distance on the x axes
 
@@ -369,6 +369,7 @@ bool PlanningHelpers::GetRelativeInfoLimited(const std::vector<WayPoint>& trajec
 			p0 = trajectory.at(info.iFront-1);
 			p1 = WayPoint((p0.pos.x+trajectory.at(info.iFront).pos.x)/2.0, (p0.pos.y+trajectory.at(info.iFront).pos.y)/2.0, (p0.pos.z+trajectory.at(info.iFront).pos.z)/2.0, p0.pos.a);
 		}
+
 
 		WayPoint prevWP = p0;
 		Mat3 rotationMat(-p1.pos.a);
@@ -887,8 +888,11 @@ int PlanningHelpers::GetClosestNextPointIndexFast(const vector<WayPoint>& trajec
 		int skip_factor = 5;
 		if(resolution > skip_factor)
 			resolution = skip_factor;
-		if(resolution < 0.5)
-			resolution = 0.5;
+
+		if(resolution < 0.01)
+		{
+			resolution = 0.01;
+		}
 
 
 		int skip = 1;
@@ -896,7 +900,7 @@ int PlanningHelpers::GetClosestNextPointIndexFast(const vector<WayPoint>& trajec
 			skip = skip_factor/resolution;
 		for(int i=0; i< size; i+=skip)
 		{
-			if(i+skip/2 < size && i+skip/2 >= 0)
+			if(i+skip/2 < size && i < size)
 			{
 				d  = (distance2pointsSqr(trajectory[i].pos, p.pos) + distance2pointsSqr(trajectory[i+skip/2].pos, p.pos))/2.0;
 			}	
@@ -1653,6 +1657,7 @@ void PlanningHelpers::SmoothPath(vector<GPSPoint>& path, double weight_data,
 	path = smoothPath_out;
 }
 
+
 // we compare two specific trajectories in order to find possible conflict/collision points
 void PlanningHelpers::PredictDynamicEgoCollision(
 	std::vector<PlannerHNS::WayPoint>& egoPath,
@@ -1727,6 +1732,7 @@ void PlanningHelpers::PredictDynamicEgoCollision(
 	return;
 }
 
+
 void PlanningHelpers::PredictConstantTimeCostForTrajectory(std::vector<PlannerHNS::WayPoint>& path, const PlannerHNS::WayPoint& currPose, const double& minVelocity, const double& minDist)
 {
 	if(path.size() == 0) return;
@@ -1734,12 +1740,7 @@ void PlanningHelpers::PredictConstantTimeCostForTrajectory(std::vector<PlannerHN
 	for(unsigned int i = 0 ; i < path.size(); i++)
 		path.at(i).timeCost = -1;
 
-	// if(currPose.v == 0 || currPose.v < minVelocity) return; // does not work for dynamic collision prediction
-	double currentVelocity;
-	if(currPose.v == 0 || currPose.v < minVelocity)
-		currentVelocity = minVelocity;
-	else
-		currentVelocity = currPose.v;
+	if(currPose.v == 0 || currPose.v < minVelocity) return;
 
 	RelativeInfo info;
 	PlanningHelpers::GetRelativeInfo(path, currPose, info);
@@ -1753,7 +1754,7 @@ void PlanningHelpers::PredictConstantTimeCostForTrajectory(std::vector<PlannerHN
 	for(unsigned int i=info.iFront; i<path.size(); i++)
 	{
 		total_distance += hypot(path.at(i).pos.x- path.at(i-1).pos.x,path.at(i).pos.y- path.at(i-1).pos.y);
-		accum_time = total_distance/currentVelocity;
+		accum_time = total_distance/currPose.v;
 		path.at(i).timeCost = accum_time;
 	}
 }
@@ -2592,26 +2593,6 @@ void PlanningHelpers::ShiftRecommendedSpeed(std::vector<WayPoint>& path, const d
 	SmoothSpeedProfiles(path, 0.4,0.3, 0.01);
 }
 
-
-PlannerHNS::GPSPoint PlanningHelpers::rotate_point(float cx,float cy,float angle, PlannerHNS::GPSPoint p)
-{
-  float s = sin(angle);
-  float c = cos(angle);
-
-  // translate point back to origin:
-  p.x -= cx;
-  p.y -= cy;
-
-  // rotate point
-  float xnew = p.x * c - p.y * s;
-  float ynew = p.x * s + p.y * c;
-
-  // translate point back:
-  p.x = xnew + cx;
-  p.y = ynew + cy;
-  return p;
-}
-
 void PlanningHelpers::GenerateRecommendedSpeed(vector<WayPoint>& path, const double& max_speed, const double& speedProfileFactor, double a_y_max , double a_x_max ,double jerk )
 {
 	CalcAngleAndCurvatureCost(path);
@@ -2727,6 +2708,7 @@ std::vector<double> PlanningHelpers::GetACCVelocityModelBased(const double& dt,
 	std::vector<std::vector<PlannerHNS::WayPoint>> total_path)
 {
 	static double previousVelocity;
+
 	std::vector<double> VelArray;
 
 	if (total_path.size() == 0){
@@ -2744,8 +2726,6 @@ std::vector<double> PlanningHelpers::GetACCVelocityModelBased(const double& dt,
 	ACC_helper.prevVelocity = previousVelocity;
 
 	double desiredVel, control_distance, isStopLine;	
-
-
 
 	if(CurrBehavior.state == FORWARD_STATE || CurrBehavior.state == OBSTACLE_AVOIDANCE_STATE )
 	{
@@ -2789,6 +2769,7 @@ std::vector<double> PlanningHelpers::GetACCVelocityModelBased(const double& dt,
 	}
 	else if(CurrBehavior.state == YIELDING_STATE )
 	{
+
 		if (CurrBehavior.followDistance < 5.0){
 			// desiredVel = 0;
 			VelArray = ACC_helper.smoothStop(); // testing
@@ -2821,6 +2802,7 @@ std::vector<double> PlanningHelpers::GetACCVelocityModelBased(const double& dt,
 		std::cout << VelArray.at(i) << std::endl;
 	}
 	return VelArray;
+
 }
 
 double ACCHelper::applyACCcontrolGain(double controlDistance, bool isStopLine){
@@ -2885,6 +2867,7 @@ std::vector<double> ACCHelper::smoothAcceleration(){
 }
 
 std::vector<double> ACCHelper::setMaxVelocity(){
+
 	// start deceleration to fullstop with max decelration. (Stop recalculating the braking trajectory)
 	std::vector<double> speedProfile;
 
@@ -2957,7 +2940,6 @@ double ACCHelper::slowDownInCurve(double target_a){
 	return target_a;
 }
 
-
 double ACCHelper::evaluateDesiredVelocity(double target_a){
 	// the current velocity should never be used to determine a reference speed profile. 
 	if (target_a > vehicleInfo.max_acceleration) target_a = vehicleInfo.max_acceleration;
@@ -2965,7 +2947,6 @@ double ACCHelper::evaluateDesiredVelocity(double target_a){
 	return desiredVel;
 }
 
-  
 double ACCHelper::applyPushFactors(double target_a){
 	/**
 		 * Apply acceleration push factors
