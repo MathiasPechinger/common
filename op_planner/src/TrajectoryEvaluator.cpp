@@ -647,20 +647,18 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params,
 			double a_diff = info.angle_diff;
 			double traj_prob = info.perp_point.collisionCost;
 
-			if(//actual_longitudinal_distance > params.pathDensity 
-        //actual_longitudinal_distance < params.minFollowingDistance 
-        // && actual_longitudinal_distance < params.minDistanceToAvoid // new avoidance
-        //&& actual_lateral_distance < g_lateral_skip_value 
-        //!info.bAfter 
-        //&& !info.bBefore 
-        t_diff < eval_params_.collision_time_)
+			if(
+        actual_longitudinal_distance > params.pathDensity 
+        && actual_longitudinal_distance < params.minFollowingDistance 
+        && actual_longitudinal_distance < params.minDistanceToAvoid // new avoidance
+        && actual_lateral_distance < g_lateral_skip_value 
+        && !info.bAfter 
+        && !info.bBefore 
+        && trajectory_points.at(j).timeCost < eval_params_.collision_time_)
 			{
 				trajectory_costs.at(i).longitudinal_cost  += 1.0/actual_longitudinal_distance;
 
-				//std::cout << info.bAfter << ", " << info.bBefore << ", " << actual_lateral_distance << ", " << actual_longitudinal_distance <<", " << t_diff <<", " << a_diff <<" ," << traj_prob <<std::endl;
-
-				// if(actual_lateral_distance < c_lateral_d && t_diff < eval_params_.collision_time_) // collision point
-				if(true) // collision point
+				if(actual_lateral_distance < c_lateral_d) // collision point
 				{
 					trajectory_costs.at(i).lateral_cost += 2.0; // use half meter fixed critical distance as contact cost for all collision points in the range
 					collision_points.push_back(info.perp_point);
@@ -671,8 +669,7 @@ void TrajectoryEvaluator::calculateDistanceCosts(const PlanningParams& params,
 						trajectory_costs.at(i).bBlocked = true;
 					}
 
-					// if(trajectory_costs.at(i).closest_obj_distance > actual_longitudinal_distance)
-					if(true)
+					if(trajectory_costs.at(i).closest_obj_distance > actual_longitudinal_distance)
 					{
 						trajectory_costs.at(i).closest_obj_distance = actual_longitudinal_distance;
 						trajectory_costs.at(i).closest_obj_velocity = trajectory_points.at(j).v;

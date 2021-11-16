@@ -136,12 +136,24 @@ void BehaviorPrediction::DoOneStep(
 	m_ParticleInfo.clear();
 	ExtractTrajectoriesFromMap(obj_list, map, m_ParticleInfo);
 
+	// assign object type
+	AssignObjectType();
+
 	CalculateCollisionTimes(minSpeed);
 
 	if(m_bParticleFilter)
 	{
 		ParticleFilterSteps(m_ParticleInfo);
 	}
+}
+
+void BehaviorPrediction::AssignObjectType(){
+	for (int objNumber = 0; objNumber < m_ParticleInfo.size(); objNumber++){
+		if (m_ParticleInfo.at(objNumber)->obj.w < 2.0) {
+			m_ParticleInfo.at(objNumber)->obj.label = "VRU";
+		}
+	}
+	return;
 }
 
 void BehaviorPrediction::fillEgoObject(DetectedObject &obj, const PlannerHNS::CAR_BASIC_INFO& egoCarInfo,
@@ -278,6 +290,8 @@ void BehaviorPrediction::PredictCurrentTrajectory(RoadNetwork& map, ObjParticles
 										m_LaneDetectionDistance, 
 										pCarPart->obj.bDirection);
 
+	// Note: 	It can happen, that no closest waypoint is found at a single timestep and the prediction of a 
+	// 			traffic participant fails (TODO Fix this issue)
 	if(	!(pCarPart->obj.bDirection && pCarPart->obj.bVelocity) 
 		&& pCarPart->obj.pClosestWaypoints.size()>0)
 	{
@@ -302,18 +316,30 @@ void BehaviorPrediction::PredictCurrentTrajectory(RoadNetwork& map, ObjParticles
 	}
 }
 
+// Notes:
+// - Maybe we have to implement a double prediction for slow and high velocities
 void BehaviorPrediction::CalculateCollisionTimes(const double& minSpeed)
 {
 	// predict objects
 	for(unsigned int i=0; i < m_ParticleInfo.size(); i++)
 	{
+		std::cout << "m_ParticleInfo.at(i)->obj.predTrajectories.size(): " << m_ParticleInfo.at(i)->obj.predTrajectories.size() << std::endl;
 		// predict all object trajectories
 		for(unsigned int j=0; j < m_ParticleInfo.at(i)->obj.predTrajectories.size(); j++)
 		{
+			double tempMinSpeed;
+			// if we have a cyclist, always assume a minimum velocity
+			if (m_ParticleInfo.at(i)->obj.label == "VRU"){
+				tempMinSpeed = 1.0;
+				// std::cout << "APPLY NEW MIN SPEED" << std::endl;
+			}else{
+				tempMinSpeed = minSpeed;
+			}
+
 			PlannerHNS::PlanningHelpers::PredictConstantTimeCostForTrajectory(
 				m_ParticleInfo.at(i)->obj.predTrajectories.at(j), 
 				m_ParticleInfo.at(i)->obj.center, 
-				minSpeed, 
+				tempMinSpeed, 
 				m_ParticleInfo.at(i)->m_PredictionDistance);
 		}
 	}
@@ -323,7 +349,7 @@ void BehaviorPrediction::CalculateCollisionTimes(const double& minSpeed)
 		PlannerHNS::PlanningHelpers::PredictConstantTimeCostForTrajectory(
 			m_EgoInfo.at(0)->obj.predTrajectories.at(j), 
 			m_EgoInfo.at(0)->obj.center, 
-			minSpeed, 
+			minSpeed+2.0, 
 			m_EgoInfo.at(0)->m_PredictionDistance);
 	}
 
@@ -351,8 +377,8 @@ void BehaviorPrediction::CalculateCollisionTimes(const double& minSpeed)
 				PlannerHNS::PlanningHelpers::PredictDynamicEgoCollision(
 					m_EgoInfo.at(0)->obj.predTrajectories.at(0),
 					m_ParticleInfo.at(ParticleCnt)->obj.predTrajectories.at(trajectoryCnt),
-					5.0,
-					5.0);
+					20.0, 	// get collision info for all object within 10 seconds dynamic range
+					10.0);	// get collision for object to a time and distance within 5 meter
 			}
 		}
 		else {

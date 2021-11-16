@@ -390,18 +390,9 @@ BehaviorStateMachine* YieldingStateII::GetNextState()
 {
 	PreCalculatedConditions* pCParams = GetCalcParams();
 
-	// std::cout << "bFullyBlock_latch_cnt = " << bFullyBlock_latch_cnt << std::endl;
-	// std::cout << "pCParams->getDistanceToNext() = " << pCParams->getDistanceToNext() << std::endl;
 
-	// safety margin before releasing fully blocked state (compensate false negatives)
-	if (!pCParams->bFullyBlock || pCParams->getDistanceToNext()>15.0)	bFullyBlock_latch_cnt++;
-	else bFullyBlock_latch_cnt = 0;
-	if (bFullyBlock_latch_cnt > 2/pCParams->dt) { // "2/pCParams->dt" => 2 second latch
-		bDelayedFullBlockRelease = true;
-		bFullyBlock_latch_cnt = 0;
-	} else bDelayedFullBlockRelease = false;
 
-	if(!pCParams->bInsideIntersection || bDelayedFullBlockRelease)
+	if(!pCParams->bInsideIntersection || !pCParams->bFullyBlock)
 	// if(!pCParams->bInsideIntersection || !pCParams->bFullyBlock)
 		return FindBehaviorState(FORWARD_STATE);
 
@@ -414,13 +405,7 @@ BehaviorStateMachine* FollowStateII::GetNextState()
 {
 	PreCalculatedConditions* pCParams = GetCalcParams();
 
-	// safety margin before releasing fully blocked state (compensate false negatives)
-	if (!pCParams->bFullyBlock)	bFullyBlock_latch_cnt++;
-	else bFullyBlock_latch_cnt = 0;
-	if (bFullyBlock_latch_cnt > 2/pCParams->dt) {	// 2 seconds latch
-		bDelayedFullBlockRelease = true;
-		bFullyBlock_latch_cnt = 0;
-	} else bDelayedFullBlockRelease = false;
+
 
 	if(pCParams->currentGoalID != pCParams->prevGoalID)
 		return FindBehaviorState(GOAL_STATE);
@@ -446,7 +431,7 @@ BehaviorStateMachine* FollowStateII::GetNextState()
 			&& pCParams->iCurrSafeTrajectory != pCParams->iPrevSafeTrajectory)
 		return FindBehaviorState(OBSTACLE_AVOIDANCE_STATE);
 
-	else if(bDelayedFullBlockRelease)
+	else if(!pCParams->bFullyBlock)
 		return FindBehaviorState(FORWARD_STATE);
 
 	else

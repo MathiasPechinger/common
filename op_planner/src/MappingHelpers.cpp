@@ -265,8 +265,9 @@ vector<WayPoint*> MappingHelpers::GetClosestWaypointsListFromMap(const WayPoint&
 			RelativeInfo info;
 			if(PlanningHelpers::GetRelativeInfoLimited(pL->points, pos, info))
 			{
-				if(bDirectionBased && fabs(info.angle_diff) > ANGLE_MAX_FOR_DIRECTION_CHECK)
+				if(bDirectionBased && fabs(info.angle_diff) > ANGLE_MAX_FOR_DIRECTION_CHECK){
 					continue;
+				}
 
 				double d = fabs(info.perp_distance);
 				if(info.bAfter)

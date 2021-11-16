@@ -1499,6 +1499,8 @@ protected:
 		const PlannerHNS::VehicleState& vehicleStatus,
 		const WayPoint& currPose);
 
+	void AssignObjectType();
+
 	void ParticleFilterSteps(std::vector<ObjParticles*>& part_info);
 
 	void SamplesFreshParticles(ObjParticles* pParts);

@@ -189,7 +189,7 @@ void DecisionMaker::InitBehaviorStates()
 
 			 if(a_diff < M_PI_2 && trafficLights.at(i).id != prevTrafficLightId)
 			 {
-				//std::cout << "Detected Light, ID = " << trafficLights.at(i).id << ", Distance = " << d << ", Angle = " << trafficLights.at(i).pos.a*RAD2DEG << ", Car Heading = " << state.pos.a*RAD2DEG << ", Diff = " << a_diff*RAD2DEG << std::endl;
+				// std::cout << "Detected Light, ID = " << trafficLights.at(i).id << ", Distance = " << d << "," << ", Car Heading = " << state.pos.a*RAD2DEG << ", Diff = " << a_diff*RAD2DEG << std::endl;
 				 trafficL = trafficLights.at(i);
 				 return true;
 			 }
@@ -555,11 +555,19 @@ void DecisionMaker::CheckForCurveZone(const VehicleState& vehicleState, double& 
 	int currIndex = PlannerHNS::PlanningHelpers::GetClosestNextPointIndexFast(m_Path, state);
 	int index_limit = m_Path.size()/2.0 + 1;
 
-	preCalcPrams->bRePlan = true;
 
-	if((currIndex > index_limit
-			|| preCalcPrams->bRePlan
-			|| preCalcPrams->bNewGlobalPath)) //&& !preCalcPrams->bFinalLocalTrajectory && m_iSinceLastReplan > m_params.nReliableCount)
+	// from trajectory evaluator and motion predictor check if the results are valid
+	if (!preCalcPrams->bFullyBlock){
+		preCalcPrams->bRePlan = true;
+	} else {
+		preCalcPrams->bRePlan = false;
+	}
+
+	if(
+		(currIndex > index_limit && preCalcPrams->bRePlan)
+		|| preCalcPrams->bRePlan
+		|| (preCalcPrams->bNewGlobalPath && preCalcPrams->bRePlan)
+			) //&& !preCalcPrams->bFinalLocalTrajectory && m_iSinceLastReplan > m_params.nReliableCount)
 	{
 		//Debug
 		// std::cout << "New Local Plan !! " << currIndex << ", "<< preCalcPrams->bRePlan << ", " << preCalcPrams->bNewGlobalPath  << ", " <<  m_TotalPath.at(0).size() << ", PrevLocal: " << m_Path.size();
@@ -663,14 +671,18 @@ void DecisionMaker::CheckForCurveZone(const VehicleState& vehicleState, double& 
 	{
 		if (i >= target_velocity.size())
 			continue;
-		std::cout << i << std::endl;
 		m_Path.at(i).v = target_velocity.at(i);
 	}
+
+	// check if calculation is valid
+	if (target_velocity.at(0) == -1){
+		return 0;
+	}
+
 	// velocity target point distance
 	double distanceToTargetSpeed = 0.5*m_CarInfo.max_acceleration*dt*dt; 
 	// Speed array position
 	unsigned int velArrayPos = ceil(distanceToTargetSpeed/m_params.pathDensity);
-
 	return target_velocity.at(velArrayPos);
  }
  
