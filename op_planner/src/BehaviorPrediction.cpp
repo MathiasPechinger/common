@@ -290,8 +290,6 @@ void BehaviorPrediction::PredictCurrentTrajectory(RoadNetwork& map, ObjParticles
 										m_LaneDetectionDistance, 
 										pCarPart->obj.bDirection);
 
-	// Note: 	It can happen, that no closest waypoint is found at a single timestep and the prediction of a 
-	// 			traffic participant fails (TODO Fix this issue)
 	if(	!(pCarPart->obj.bDirection && pCarPart->obj.bVelocity) 
 		&& pCarPart->obj.pClosestWaypoints.size()>0)
 	{
@@ -323,7 +321,6 @@ void BehaviorPrediction::CalculateCollisionTimes(const double& minSpeed)
 	// predict objects
 	for(unsigned int i=0; i < m_ParticleInfo.size(); i++)
 	{
-		std::cout << "m_ParticleInfo.at(i)->obj.predTrajectories.size(): " << m_ParticleInfo.at(i)->obj.predTrajectories.size() << std::endl;
 		// predict all object trajectories
 		for(unsigned int j=0; j < m_ParticleInfo.at(i)->obj.predTrajectories.size(); j++)
 		{

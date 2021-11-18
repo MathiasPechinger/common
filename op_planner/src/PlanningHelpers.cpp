@@ -2823,7 +2823,7 @@ double ACCHelper::applyACCcontrolGain(double controlDistance, bool isStopLine){
 }
 
 double ACCHelper::calcControlDistance(double stopDistance, bool isStopLine){
-	double safety_distance = 8; //for following
+	double safety_distance = 5; //for following
 	double temp_distance = 0;
 	stopDistance = stopDistance-(vehicleInfo.wheel_base+vehicleInfo.front_length);
 	if (isStopLine){

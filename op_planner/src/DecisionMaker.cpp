@@ -555,13 +555,15 @@ void DecisionMaker::CheckForCurveZone(const VehicleState& vehicleState, double& 
 	int currIndex = PlannerHNS::PlanningHelpers::GetClosestNextPointIndexFast(m_Path, state);
 	int index_limit = m_Path.size()/2.0 + 1;
 
-
+	// std::cout << "m_iSinceLastReplan: " <<m_iSinceLastReplan << std::endl;
 	// from trajectory evaluator and motion predictor check if the results are valid
-	if (!preCalcPrams->bFullyBlock){
-		preCalcPrams->bRePlan = true;
-	} else {
-		preCalcPrams->bRePlan = false;
-	}
+	// if (!preCalcPrams->bFullyBlock){
+	// 	preCalcPrams->bRePlan = true;
+	// } else {
+	// 	preCalcPrams->bRePlan = false;
+	// }
+
+	preCalcPrams->bRePlan = true;
 
 	if(
 		(currIndex > index_limit && preCalcPrams->bRePlan)
