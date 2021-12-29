@@ -1301,7 +1301,7 @@ double PlanningHelpers::GetDistanceToClosestStopLineAndCheck(const std::vector<W
 					{
 						stopSignID = path.at(i).pLane->stopLines.at(j).stopSignID;
 						if(path.at(i).pLane->stopLines.at(j).lightIds.size() > 0)
-							trafficLightID = path.at(i).pLane->stopLines.at(j).lightIds.at(0);
+							trafficLightID = 42;
 						return localDistance;
 					}
 				}
@@ -1709,11 +1709,6 @@ void PlanningHelpers::PredictDynamicEgoCollision(
 					// std::cout << "-> Possible collision at x:" << obstaclePath.at(obstaclePose).pos.x << " y:"<< obstaclePath.at(obstaclePose).pos.x << "m" <<std::endl;
 				} 
 			} 
-			// else {
-				// obstaclePath.at(obstaclePose).timeCost = 999;
-				// std::cout << "setting new time cost 999 at Pose " << obstaclePose << std::endl;
-			// } 
-
 		}
 	}
 

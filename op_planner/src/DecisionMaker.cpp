@@ -215,7 +215,7 @@ void DecisionMaker::InitBehaviorStates()
 	if(beh.boundaryType == INTERSECTION_BOUNDARY) {
 		pValues->bInsideIntersection = true;
 	} else {
-		pValues->bInsideIntersection = false; // always in an intersection (ToDo Armin Map loader)
+		pValues->bInsideIntersection = false; 
 	}
 
  	if(m_CarInfo.max_deceleration != 0){ 
@@ -369,6 +369,7 @@ void DecisionMaker::InitBehaviorStates()
 	// std::cout << " lightID: "<< trafficLightID << std::endl;
 	
 	stopSignID = 1;
+	trafficLightID = 42;
 
  	 	if(		distanceToClosestStopLine > m_params.giveUpDistance 
 	 	&& 	distanceToClosestStopLine < (pValues->minStoppingDistance + trafficLightDetectionAdditonalRange ))
@@ -381,7 +382,9 @@ void DecisionMaker::InitBehaviorStates()
  			// std::cout << "Detected Traffic Light: " << trafficLightID << std::endl;
 			for(unsigned int i=0; i< detectedLights.size(); i++)
  			{
- 				if(detectedLights.at(i).id == trafficLightID)
+				trafficLightID = 42;
+ 				if(true)
+ 				// if(detectedLights.at(i).id == trafficLightID)
  					bGreenTrafficLight = (detectedLights.at(i).lightType == GREEN_LIGHT);
  			}
  		}
@@ -649,21 +652,33 @@ void DecisionMaker::CheckForCurveZone(const VehicleState& vehicleState, double& 
 
 	RelativeInfo total_info;
 	PlanningHelpers::GetRelativeInfo(m_TotalPaths.at(m_iCurrentTotalPathId), state, total_info);		
-	beh_with_max.maxVelocity = PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance*m_params.curveSlowDownRatio);
+	// beh_with_max.maxVelocity = PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance*m_params.curveSlowDownRatio);
 	// Debug: Look Ahead Distance for vel speed set to zero; Robert)
 	beh_with_max.maxVelocity = PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, 0);
-	//std::cout << "############### target velocity      :     " << beh_with_max.maxVelocity <<" # current speed: " << CurrStatus.speed << std::endl;
 	
+
+
 	if(beh_with_max.maxVelocity > m_params.maxSpeed)
 	{
 		beh_with_max.maxVelocity = m_params.maxSpeed;
+	}
+
+	// Testing new intersection feature for cautios driving inside an intersection
+	// If we are inside an intersection we have to drive very slow to account for 
+	// occluded areas or VRUs
+	bool enableCautiosDriving = true;
+	PlannerHNS::CAR_BASIC_INFO modifiedCarInfo;
+	if (preCalcPrams->bInsideIntersection && !CurrStatus.bUseSmartInfrastructure && enableCautiosDriving){
+		beh_with_max.maxVelocity = 2.5; // modified for different intersection speed caps
+	} else {
+		modifiedCarInfo = m_CarInfo;
 	}
 	
 	//VehicleState desired_state =  m_VelocityController.DoOneStep(dt, beh_with_max, CurrStatus);
 	
 	std::vector<double> target_velocity = PlanningHelpers::GetACCVelocityModelBased(dt, 
 															CurrStatus.speed, 
-															m_CarInfo, 
+															modifiedCarInfo, 
 															m_ControlParams, 
 															beh_with_max,
 															m_params,

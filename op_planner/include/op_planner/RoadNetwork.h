@@ -906,6 +906,7 @@ public:
 	double speed = 0;
 	double steer = 0;
 	SHIFT_POS shift = SHIFT_POS_NN;
+	bool bUseSmartInfrastructure = false;
 };
 
 class BehaviorState

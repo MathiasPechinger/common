@@ -324,19 +324,10 @@ void BehaviorPrediction::CalculateCollisionTimes(const double& minSpeed)
 		// predict all object trajectories
 		for(unsigned int j=0; j < m_ParticleInfo.at(i)->obj.predTrajectories.size(); j++)
 		{
-			double tempMinSpeed;
-			// if we have a cyclist, always assume a minimum velocity
-			if (m_ParticleInfo.at(i)->obj.label == "VRU"){
-				tempMinSpeed = 1.0;
-				// std::cout << "APPLY NEW MIN SPEED" << std::endl;
-			}else{
-				tempMinSpeed = minSpeed;
-			}
-
 			PlannerHNS::PlanningHelpers::PredictConstantTimeCostForTrajectory(
 				m_ParticleInfo.at(i)->obj.predTrajectories.at(j), 
 				m_ParticleInfo.at(i)->obj.center, 
-				tempMinSpeed, 
+				minSpeed, 
 				m_ParticleInfo.at(i)->m_PredictionDistance);
 		}
 	}
@@ -368,14 +359,15 @@ void BehaviorPrediction::CalculateCollisionTimes(const double& minSpeed)
 	for (int ParticleCnt=0; ParticleCnt<m_ParticleInfo.size(); ParticleCnt++){
 		// check if not empty
 		if (!m_ParticleInfo.at(ParticleCnt)->obj.predTrajectories.size() == 0) {
-
 			// iterate over all trajectories of a predicted object
 			for (int trajectoryCnt = 0; trajectoryCnt < m_ParticleInfo.at(ParticleCnt)->obj.predTrajectories.size(); trajectoryCnt++){
 				PlannerHNS::PlanningHelpers::PredictDynamicEgoCollision(
 					m_EgoInfo.at(0)->obj.predTrajectories.at(0),
 					m_ParticleInfo.at(ParticleCnt)->obj.predTrajectories.at(trajectoryCnt),
-					20.0, 	// get collision info for all object within 10 seconds dynamic range
-					10.0);	// get collision for object to a time and distance within 5 meter
+					5.0, 	// get collision info for all object within 10 seconds dynamic range
+					0.5);	// get collision for object to a time and distance within 0.5 meter
+							// it this is to high, points will start comparing themselves which will mess up the evaluation
+							// TODO: IMPORTANT ALLIGN THIS TO PATH RESOLUTION!!!
 			}
 		}
 		else {

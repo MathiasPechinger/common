@@ -343,11 +343,13 @@ void LocalPlannerH::ReInitializePlanner(const WayPoint& start_pose)
  	{
  		if(m_pCurrentBehaviorState->m_pParams->enableTrafficLightBehavior)
  		{
+			trafficLightID = 42;
  			pValues->currentTrafficLightID = trafficLightID;
  			//cout << "Detected Traffic Light: " << trafficLightID << endl;
  			for(unsigned int i=0; i< detectedLights.size(); i++)
  			{
- 				if(detectedLights.at(i).id == trafficLightID)
+ 				if(true)
+ 				// if(detectedLights.at(i).id == trafficLightID)
  					bGreenTrafficLight = (detectedLights.at(i).lightType == GREEN_LIGHT);
  			}
  		}
