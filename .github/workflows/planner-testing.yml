@@ -13,7 +13,7 @@ jobs:
           echo "repositories:
             common:
               type: git
-              url: https://github.com/MathiasPechinger/common_2.git
+              url: https://github.com/MathiasPechinger/common.git
               version: ${{ github.ref_name }}
             core_perception:
               type: git
@@ -30,7 +30,11 @@ jobs:
             visualization:
               type: git
               url: https://github.com/MathiasPechinger/visualization.git
-              version: dev-op.1.15-advancements" >> ci-test.repos
+              version: dev-op.1.15-advancements
+            planner_launch:
+              type: git
+              url: https://github.com/MathiasPechinger/planner_launch.git
+              version: main" >> ci-test.repos
         
       - run: |
           cd /home/hil/ros_ci_docker/
