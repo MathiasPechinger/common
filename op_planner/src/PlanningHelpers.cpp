@@ -2719,7 +2719,9 @@ std::vector<double> PlanningHelpers::GetACCVelocityModelBased(const double& dt,
 	PlannerHNS::PlanningParams& m_params,
 	std::vector<std::vector<PlannerHNS::WayPoint>> total_path)
 {
+	std::cout << "PlanningHelpers::GetACCVelocityModelBased" << std::endl;
 	static double previousVelocity;
+	static double previousAcceleration;
 	std::vector<double> VelArray;
 
 	if (total_path.size() == 0){
@@ -2736,6 +2738,7 @@ std::vector<double> PlanningHelpers::GetACCVelocityModelBased(const double& dt,
 	
 	ACCHelper ACC_helper(dt,CurrSpeed,vehicleInfo,ctrlParams,CurrBehavior,m_params,0.5,pathLength);
 	ACC_helper.prevVelocity = previousVelocity;
+	ACC_helper.prevAcceleration = previousAcceleration;
 
 	double desiredVel, control_distance, isStopLine;	
 
@@ -2743,14 +2746,17 @@ std::vector<double> PlanningHelpers::GetACCVelocityModelBased(const double& dt,
 
 	if(CurrBehavior.state == FORWARD_STATE || CurrBehavior.state == OBSTACLE_AVOIDANCE_STATE )
 	{
-		if (CurrSpeed < CurrBehavior.maxVelocity){
-			VelArray = ACC_helper.smoothAcceleration();
-		} else {
-			VelArray = ACC_helper.setMaxVelocity();
-		}
+		std::cout << "PlanningHelpers::GetACCVelocityModelBased FORWARD_STATE" << std::endl;
+		VelArray = ACC_helper.smoothFollowProfile(CurrBehavior.maxVelocity);
+		// if (CurrSpeed < CurrBehavior.maxVelocity){
+		// 	VelArray = ACC_helper.smoothAcceleration();
+		// } else {
+		// 	VelArray = ACC_helper.setMaxVelocity();
+		// }
 	}
 	else if(CurrBehavior.state == STOPPING_STATE || CurrBehavior.state == TRAFFIC_LIGHT_STOP_STATE || CurrBehavior.state == STOP_SIGN_STOP_STATE)
 	{
+		std::cout << "PlanningHelpers::GetACCVelocityModelBased STOPPING_STATE || TRAFFIC_LIGHT_STOP_STATE || STOP_SIGN_STOP_STATE" << std::endl;
 		bool validObjectDistanceToFollow = ACC_helper.isObjectAhead();
 
 		if(	CurrBehavior.stopLineDistance <= (CurrBehavior.followDistance) 
@@ -2759,53 +2765,57 @@ std::vector<double> PlanningHelpers::GetACCVelocityModelBased(const double& dt,
 		{
 			isStopLine = true;
 			control_distance = 	ACC_helper.calcControlDistance(CurrBehavior.stopLineDistance, isStopLine);
-			double targetVel = ACC_helper.applyACCcontrolGain(control_distance, isStopLine);
-			VelArray = ACC_helper.setStaticVelocity(targetVel);
+			double targetVelocity = ACC_helper.applyACCcontrolGain(control_distance, isStopLine);
+			// VelArray = ACC_helper.setStaticVelocity(targetVelocity);
+			// VelArray = ACC_helper.smoothAcceleration();
+			VelArray = ACC_helper.smoothFollowProfile(targetVelocity);
 		} 
 		else 
 		// Stopping behind a vehicle in front of us, which is waiting at the stopline (FOLLOW MODE)
 		{
 			isStopLine = false;
 			control_distance = 	ACC_helper.calcControlDistance(CurrBehavior.followDistance, isStopLine);
-			if (control_distance > -2.0){
-				VelArray = ACC_helper.smoothStop();
-			} else {
-				double targetVel = ACC_helper.applyACCcontrolGain(control_distance, isStopLine);
-				VelArray = ACC_helper.setStaticVelocity(targetVel);
-			}
+			double targetVelocity = ACC_helper.applyACCcontrolGain(control_distance, isStopLine);
+			VelArray = ACC_helper.smoothFollowProfile(targetVelocity);
+			// if (control_distance > -2.0){
+			// 	VelArray = ACC_helper.smoothStop();
+			// } else {
+				
+			// 	VelArray = ACC_helper.setStaticVelocity(targetVel);
+			// }
 		}
 	}
 	else if(CurrBehavior.state == STOP_SIGN_WAIT_STATE || CurrBehavior.state == TRAFFIC_LIGHT_WAIT_STATE){
-		VelArray = ACC_helper.setStaticVelocity(desiredVel);
+		std::cout << "PlanningHelpers::GetACCVelocityModelBased STOP_SIGN_WAIT_STATE || TRAFFIC_LIGHT_WAIT_STATE" << std::endl;
+		desiredVel = 0;
+		VelArray = ACC_helper.smoothFollowProfile(desiredVel);
 	}
 	else if(CurrBehavior.state == YIELDING_STATE )
 	{
+		std::cout << "PlanningHelpers::GetACCVelocityModelBased YIELDING_STATE" << std::endl;
 		VelArray = ACC_helper.smoothStop();
 
 	}
 	else if(CurrBehavior.state == FOLLOW_STATE)
 	{
+		std::cout << "PlanningHelpers::GetACCVelocityModelBased FOLLOW_STATE" << std::endl;
 		isStopLine = false;
 		control_distance = 		ACC_helper.calcControlDistance(CurrBehavior.followDistance,isStopLine);
 		double targetVelocity = ACC_helper.applyACCcontrolGain(control_distance, isStopLine);
-		if (CurrSpeed<targetVelocity && targetVelocity > 2){
-			VelArray = ACC_helper.smoothAcceleration();
-		} else {
-			// VelArray = ACC_helper.smoothStop(); // maybe wrong implementation for the behavior
-			VelArray = ACC_helper.setStaticVelocity(targetVelocity);
-		}
-
+		VelArray = ACC_helper.smoothFollowProfile(targetVelocity);
 	}
 	else
 	{
-	 	VelArray.push_back(-1);
+		std::cout << "PlanningHelpers::GetACCVelocityModelBased NONE" << std::endl;
+	 	// VelArray.push_back(-1);
+		//  VelArray = ACC_helper.smoothStop();
+		VelArray = ACC_helper.smoothFollowProfile(0);
 	}
 
 	VelArray = ACC_helper.limitVelocity(VelArray);
 
-
 	previousVelocity = ACC_helper.prevVelocity;
-
+	previousAcceleration = ACC_helper.prevAcceleration;
 
 	return VelArray;
 }
@@ -2876,6 +2886,45 @@ std::vector<double> ACCHelper::smoothAcceleration(){
 	return speedProfile;
 }
 
+std::vector<double> ACCHelper::smoothFollowProfile(double targetVelocity) {
+	std::vector<double> speedProfile;
+	std::vector<double> accelProfile;
+
+	if (targetVelocity < 0){
+		targetVelocity = 0;
+	}
+	double jerk = copysign(vehicleInfo.max_jerk, targetVelocity - this->prevVelocity);
+
+	// get initial/current speed
+	speedProfile.push_back(this->prevVelocity);
+	accelProfile.push_back(this->prevAcceleration);
+
+	// calculate speed profile (longitudinal only, because lateral is cut in global plan already)
+	for(int i=1;i<pathLength;i++){ // skip the first loop because this is our initial velocity
+		double prevVel = speedProfile.at(i-1);
+		double prevAcc = accelProfile.at(i-1);
+
+		double nextAcc = prevAcc + jerk * this->dt;
+		if(nextAcc < vehicleInfo.max_deceleration){
+			nextAcc = vehicleInfo.max_deceleration;
+		}
+		accelProfile.push_back(nextAcc);
+		// TODO: catch negative sqrt content
+		double nextVel = sqrt(2*nextAcc*m_params.pathDensity+prevVel*prevVel);
+
+		// If we are to slow the future is negative
+		if (isnan(nextVel)){
+			nextVel = 0;
+		}
+		speedProfile.push_back(nextVel);
+	}
+
+	this->prevAcceleration = this->prevAcceleration + jerk*this->dt;
+	this->prevVelocity = this->prevVelocity + (this->prevAcceleration)*this->dt;
+
+	return speedProfile;
+}
+
 std::vector<double> ACCHelper::setMaxVelocity(){
 	// start deceleration to fullstop with max decelration. (Stop recalculating the braking trajectory)
 	std::vector<double> speedProfile;
@@ -2917,6 +2966,12 @@ std::vector<double> ACCHelper::limitVelocity(std::vector<double> speedProfile){
 
 	if (this->prevVelocity < 0)
 		this->prevVelocity = 0;
+
+	if (this->prevAcceleration > vehicleInfo.max_acceleration)
+		this->prevAcceleration = vehicleInfo.max_acceleration;
+
+	if (this->prevAcceleration < vehicleInfo.max_deceleration)
+		this->prevAcceleration = vehicleInfo.max_deceleration;
 
 	return speedProfile;
 }
@@ -3902,6 +3957,9 @@ double PlanningHelpers::GetCurvatureCostAhead(const std::vector<WayPoint>& path,
 	return min_cost;
 }
 
+/**
+ * @brief Gets the Velocity based on the current path 
+ */
 double PlanningHelpers::GetVelocityAhead(const std::vector<WayPoint>& path, const RelativeInfo& info, int& prev_index, const double& reasonable_brake_distance)
 {
 	if(path.size()==0) return 0;
@@ -3927,6 +3985,19 @@ double PlanningHelpers::GetVelocityAhead(const std::vector<WayPoint>& path, cons
 		prev_index = local_i;
 
 	return min_v;
+}
+
+double PlanningHelpers::GetLengthFromPath(const std::vector<WayPoint>& path) {
+	if(path.size()==0) return 0;
+
+	double length = 0;
+
+	for(int i = 1; i < path.size(); i++)
+	{
+		length += hypot(path.at(i).pos.y - path.at(i-1).pos.y, path.at(i).pos.x - path.at(i-1).pos.x);
+	}
+
+	return length;
 }
 
 void PlanningHelpers::WritePathToFile(const string& fileName, const vector<WayPoint>& path)

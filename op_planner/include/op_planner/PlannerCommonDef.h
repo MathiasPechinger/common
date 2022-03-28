@@ -114,6 +114,7 @@ public:
 
   double max_acceleration = 1.5; // m/s*s
   double max_deceleration = -1.5; // m/s*s
+  double max_jerk = 2.0; // m/s^3 https://www.mdpi.com/2079-9292/8/9/943/htm Toward a Comfortable Driving Experience for a Self-Driving Shuttle Bus
 };
 
 } /* namespace PlannerHNS */

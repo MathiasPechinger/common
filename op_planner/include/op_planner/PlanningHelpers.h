@@ -215,6 +215,8 @@ public:
 
 	static double GetCurvatureCostAhead(const std::vector<WayPoint>& path, const RelativeInfo& info,int& prev_index, const double& search_distance);
 
+	static double GetLengthFromPath(const std::vector<WayPoint>& path);
+
 	static bool CompareTrajectories(const std::vector<WayPoint>& path1, const std::vector<WayPoint>& path2);
 
 	static double GetDistanceToClosestStopLineAndCheck(const std::vector<WayPoint>& path, const WayPoint& p, const double& giveUpDistance, int& stopLineID,int& stopSignID, int& trafficLightID, const int& prevIndex = 0);
@@ -275,6 +277,7 @@ class ACCHelper{
 	const double ACCcontrolgain;
 	const int pathLength;
 	double prevVelocity;
+	double prevAcceleration;
 	
 
 	ACCHelper(const double& dt, 
@@ -301,7 +304,10 @@ class ACCHelper{
 	double slowDownInCurve(double target_a);
 	bool isObjectAhead();
 	std::vector<double> smoothStop();
-	std::vector<double> smoothAcceleration();
+	std::vector<double> smoothAcceleration(void);
+	std::vector<double> smoothFollowProfile(double targetVelocity);
+	std::vector<double> smoothAcceleration(double targetVelocity);
+	std::vector<double> smoothDeceleration(double targetVelocity);
 	double closeGapToStop(double currentDesiredVelocity, double stopDistance, bool isStopLine);
 	double calcControlDistance(double stopDistance,bool isStopLine);
 	double applyACCcontrolGain(double controlDistance,bool isStopLine);

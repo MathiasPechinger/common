@@ -655,13 +655,26 @@ void DecisionMaker::CheckForCurveZone(const VehicleState& vehicleState, double& 
 	// beh_with_max.maxVelocity = PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, preCalcPrams->minStoppingDistance*m_params.curveSlowDownRatio);
 	// Debug: Look Ahead Distance for vel speed set to zero; Robert)
 	beh_with_max.maxVelocity = PlannerHNS::PlanningHelpers::GetVelocityAhead(m_TotalPaths.at(m_iCurrentTotalPathId), total_info, total_info.iBack, 0);
+	double length = PlannerHNS::PlanningHelpers::GetLengthFromPath(m_Path);
+	std::cout << "UpdateVelocityDirectlyToTrajectorySmooth - path length: " << length << std::endl;
 	
-
 
 	if(beh_with_max.maxVelocity > m_params.maxSpeed)
 	{
 		beh_with_max.maxVelocity = m_params.maxSpeed;
 	}
+
+	PlannerHNS::CAR_BASIC_INFO vehicleInfo;
+
+	double a = 1 / (2*vehicleInfo.max_acceleration);
+	double b = 0.2; // reaction time - perception latency
+	double max_vel = 0.5 * (sqrt(4 * a * length + b *b) + b) / (2*a) ;
+	if(beh_with_max.maxVelocity > max_vel)
+	{
+		beh_with_max.maxVelocity = max_vel;
+	}
+
+	std::cout << "UpdateVelocityDirectlyToTrajectorySmooth - beh_with_max.maxVelocity: " << beh_with_max.maxVelocity << std::endl;
 
 	// Testing new intersection feature for cautios driving inside an intersection
 	// If we are inside an intersection we have to drive very slow to account for 
